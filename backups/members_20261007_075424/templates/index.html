@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nhà Thông Minh - Báo Động Động Đất & Điểm Danh AI</title>
+  <link href="/static/vendor/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background:#eef1f4; }
+    .stat-label { font-size:.85rem; color:#6c757d; }
+    .stat-value { font-size:2rem; font-weight:700; line-height:1.1; }
+    .cam-box { background:#111; border-radius:.5rem; overflow:hidden; aspect-ratio:4/3; }
+    .cam-box img { width:100%; height:100%; object-fit:contain; display:block; }
+    .name-list { list-style:none; margin:0; padding:0; max-height:260px; overflow-y:auto; }
+    .name-list li { padding:.45rem .75rem; border-bottom:1px solid rgba(0,0,0,.08); }
+    .name-list.ok li { display:flex; justify-content:space-between; gap:.5rem; }
+    .name-list.ok .tg { font-variant-numeric:tabular-nums; color:#6c757d; font-size:.85rem; font-weight:400; }
+    .cap-title { padding:.4rem .75rem; font-size:.85rem; font-weight:600; color:#146c43; background:#f1f8f4; border-top:1px solid rgba(0,0,0,.08); }
+    .cap-title { display:flex; justify-content:space-between; align-items:center; }
+    .slots { display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:.6rem; padding:.6rem; }
+    .slot { background:#fff; border:2px solid #ced4da; border-radius:.5rem; overflow:hidden; text-align:center; }
+    .slot.co { border-color:#198754; }
+    .slot .pic { aspect-ratio:4/3; background:#e9ecef; display:flex; align-items:center; justify-content:center; color:#6c757d; font-size:.8rem; }
+    .slot .pic img { width:100%; height:100%; object-fit:cover; display:block; }
+    .slot .sname { font-weight:700; padding:.3rem .25rem 0; }
+    .slot.co .sname { color:#146c43; }
+    .slot .stime { font-size:.78rem; color:#6c757d; padding-bottom:.35rem; font-variant-numeric:tabular-nums; }
+    .cap-none { grid-column:1 / -1; color:#6c757d; font-size:.9rem; padding:.25rem; }
+    .panel-ok  { border:2px solid #198754; }
+    .panel-ok  .panel-head { background:#198754; color:#fff; }
+    .panel-bad { border:2px solid #dc3545; }
+    .panel-bad .panel-head { background:#dc3545; color:#fff; }
+    .stuck-name { font-weight:700; color:#b02a37; animation:blink 1s steps(2,start) infinite; }
+    @keyframes blink { 50% { opacity:.25; } }
+    .alert-state { animation:blink 0.8s steps(2,start) infinite; }
+    @media (prefers-reduced-motion: reduce) { .stuck-name, .alert-state { animation:none; } }
+    @media (min-width:992px) { .col-cam { flex:0 0 60%; max-width:60%; } .col-list { flex:0 0 40%; max-width:40%; } }
+  </style>
+</head>
+<body>
+<div class="container-fluid p-3">
+  <div class="card shadow-sm mb-3"><div class="card-body">
+    <div class="d-flex flex-wrap gap-2 align-items-end">
+      <div><label for="controllerIp" class="form-label">IP ESP8266</label><input id="controllerIp" class="form-control" placeholder="192.168.0.104"></div>
+      <div><label for="cameraIp" class="form-label">IP ESP32-CAM (để trống để tự nhận)</label><input id="cameraIp" class="form-control" placeholder="Tự nhận từ ESP8266"></div>
+      <button id="saveIot" class="btn btn-outline-primary" onclick="saveIotConfig()">KẾT NỐI</button>
+    </div>
+    <div id="iotInfo" class="small text-muted mt-2">Đang kiểm tra kết nối hai mạch…</div>
+    <div id="configMsg" class="small mt-1"></div>
+  </div></div>
+
+
+  <!-- KHU VỰC 1: BẢNG ĐIỀU KHIỂN IoT -->
+  <div class="card shadow-sm mb-3">
+    <div class="card-body">
+      <div class="row g-3 align-items-center">
+        <div class="col-6 col-lg-2">
+          <div class="stat-label">Độ rung chấn (g)</div>
+          <div class="stat-value"><span id="rung">--</span></div>
+        </div>
+        <div class="col-6 col-lg-3">
+          <div class="stat-label">Trạng thái hệ thống</div>
+          <div id="trangthai" class="stat-value text-secondary">--</div>
+        </div>
+        <div class="col-12 col-lg-7">
+          <div class="d-flex flex-wrap gap-2 justify-content-lg-end">
+            <button class="btn btn-success" onclick="dieuKhien('mo_cua')">MỞ CỬA</button>
+            <button class="btn btn-primary" onclick="dieuKhien('dong_cua')">ĐÓNG CỬA</button>
+            <button class="btn btn-danger" onclick="dieuKhien('tat_coi')">TẮT CÒI</button>
+            <button class="btn btn-outline-danger" onclick="dieuKhien('reset')">RESET CẢNH BÁO</button>
+          </div>
+          <div id="ctrlMsg" class="text-lg-end small text-muted mt-2" style="min-height:1.2em"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <!-- KHU VỰC 2: CAMERA AI (60%) -->
+    <div class="col-12 col-cam">
+      <div class="card shadow-sm h-100">
+        <div class="card-header fw-semibold d-flex justify-content-between align-items-center">
+          <span>Camera AI nhận diện khuôn mặt</span>
+          <span class="d-flex align-items-center gap-2">
+            <button id="quakeBtn" class="btn btn-sm btn-outline-danger" type="button" title="Gửi TEST hoặc RESET tới ESP8266 thật; TEST mở cửa và bật còi">Bật báo động thử</button>
+            <button id="aiBtn" class="btn btn-sm btn-outline-secondary" type="button" title="Tạm dừng AI để kiểm tra video có đơ vì AI không">Tạm dừng AI</button>
+            <span id="liveBadge" class="badge bg-secondary">Đang kết nối...</span>
+          </span>
+        </div>
+        <div class="card-body p-2">
+          <div class="cam-box"><img id="video" alt="Luồng camera trực tiếp"></div>
+        </div>
+        <div class="cap-title"><span>Người vừa phát hiện (ảnh chụp theo từng tên)</span><span id="capCount"></span></div>
+        <div id="capGrid" class="slots"></div>
+      </div>
+    </div>
+
+    <!-- KHU VỰC 3: BẢNG ĐIỂM DANH AI (40%) -->
+    <div class="col-12 col-list">
+      <div class="card panel-ok mb-3">
+        <div class="card-header panel-head fw-semibold">
+          ĐÃ THOÁT HIỂM <span id="cntOk" class="badge bg-light text-success ms-1">0</span>
+        </div>
+        <ul id="listOk" class="name-list ok"></ul>
+      </div>
+      <div class="card panel-bad">
+        <div class="card-header panel-head fw-semibold">
+          CÒN KẸT LẠI <span id="cntBad" class="badge bg-light text-danger ms-1">0</span>
+        </div>
+        <ul id="listBad" class="name-list"></ul>
+        <div class="small text-muted px-3 pb-2">Hai danh sách cập nhật theo cảnh báo thật từ ESP8266. Nhận diện khuôn mặt chỉ xác nhận người xuất hiện trước camera; chưa xác minh hướng đi hoặc việc đã thoát khỏi tòa nhà.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card shadow-sm mt-3"><div class="card-header fw-semibold d-flex flex-wrap gap-2 justify-content-between">
+    <span>Ảnh cảnh báo từ ESP32-CAM</span><button id="captureNow" class="btn btn-sm btn-primary" onclick="captureNow()">CHỤP ẢNH NGAY</button>
+  </div><div class="card-body">
+    <p class="small text-muted">Chụp khi nhận báo động, rồi mỗi 60 giây đến khi reset. Ảnh tải được lưu trên laptop; thời gian hiển thị là thời gian lưu về máy chủ.</p>
+    <div id="photoMsg" class="small mb-2"></div><div id="eventPhotos" class="slots"></div>
+  </div></div>
+</div>
+
+<script>
+  function renderList(ul, names, cls, emptyText) {
+    ul.replaceChildren();
+    if (!names.length) {
+      const li = document.createElement('li');
+      li.className = 'text-muted';
+      li.textContent = emptyText;
+      ul.appendChild(li);
+      return;
+    }
+    names.forEach(n => {
+      const li = document.createElement('li');
+      li.textContent = n;            // textContent: tránh chèn HTML từ tên file
+      if (cls) li.className = cls;
+      ul.appendChild(li);
+    });
+  }
+
+  // Danh sách "ĐÃ THOÁT" (tên + giờ). Chỉ vẽ lại khi dữ liệu đổi.
+  let lastOkKey = null;
+  function renderThoat(items) {
+    const key = JSON.stringify(items);
+    if (key === lastOkKey) return;
+    lastOkKey = key;
+    const ul = document.getElementById('listOk');
+    ul.replaceChildren();
+    if (!items.length) {
+      const li = document.createElement('li');
+      li.className = 'text-muted';
+      li.textContent = 'Chưa có ai thoát ra';
+      ul.appendChild(li);
+      return;
+    }
+    items.slice().reverse().forEach(it => {          // người thoát gần nhất lên đầu
+      const li = document.createElement('li');
+      li.className = 'text-success fw-semibold';
+      const ten = document.createElement('span');
+      ten.textContent = it.ten;
+      const tg = document.createElement('span');
+      tg.className = 'tg';
+      tg.textContent = it.thoi_gian;
+      li.append(ten, tg);
+      ul.appendChild(li);
+    });
+  }
+
+  // ---- Mỗi người trong dataset 1 ô: ảnh chụp mới nhất + giờ. Chỉ vẽ lại khi dữ liệu đổi (không nháy) ----
+  let lastCapKey = null;
+  function renderSlots(items) {
+    const key = JSON.stringify(items);
+    if (key === lastCapKey) return;
+    lastCapKey = key;
+    const grid = document.getElementById('capGrid');
+    const coAnh = items.filter(x => x.anh).length;
+    document.getElementById('capCount').textContent = items.length ? coAnh + '/' + items.length : '';
+    grid.replaceChildren();
+    if (!items.length) {
+      const none = document.createElement('div');
+      none.className = 'cap-none';
+      none.textContent = 'Chưa có ai trong dataset';
+      grid.appendChild(none);
+      return;
+    }
+    items.forEach(it => {
+      const box = document.createElement('div');
+      box.className = 'slot' + (it.anh ? ' co' : '');
+      const pic = document.createElement('div');
+      pic.className = 'pic';
+      if (it.anh) {
+        const a = document.createElement('a');
+        a.href = it.anh; a.target = '_blank'; a.rel = 'noopener';
+        a.style.cssText = 'display:block;width:100%;height:100%';
+        const im = document.createElement('img');
+        im.src = it.anh;
+        im.alt = 'Ảnh ' + it.ten;
+        im.addEventListener('error', () => pic.replaceChildren('Không tải được ảnh'));
+        a.appendChild(im);
+        pic.appendChild(a);
+      } else {
+        pic.textContent = 'Chưa xuất hiện';
+      }
+      const nm = document.createElement('div');
+      nm.className = 'sname';
+      nm.textContent = it.ten;                       // textContent: tránh chèn HTML từ tên file
+      const tm = document.createElement('div');
+      tm.className = 'stime';
+      tm.textContent = it.thoi_gian || '—';
+      tm.title = it.ngay || '';
+      box.append(pic, nm, tm);
+      grid.appendChild(box);
+    });
+  }
+
+  // ---- Video trực tiếp: tự nối lại khi server khởi động lại hoặc luồng bị đứng ----
+  // Video LIVE do tiến trình camera riêng phát trên cổng riêng (không đi qua Flask)
+  const VIDEO_URL = location.protocol + '//' + location.hostname + ':{{ video_port }}/video_feed';
+  const video = document.getElementById('video');
+  video.src = VIDEO_URL + '?t=' + Date.now();
+  video.addEventListener('error', () => setTimeout(() => { lastReload = 0; napLaiVideo(); }, 2000));
+  const badge = document.getElementById('liveBadge');
+  let serverDown = false, lastVideoId = null, lastVideoChange = Date.now(), lastReload = 0;
+
+  function napLaiVideo() {
+    const now = Date.now();
+    if (now - lastReload < 5000) return;          // không nạp lại liên tục
+    lastReload = now;
+    video.src = VIDEO_URL + '?t=' + now;           // mở lại luồng MJPEG
+  }
+  function datBadge(chu, lop) {
+    badge.textContent = chu;
+    badge.className = 'badge ' + lop;
+  }
+
+  async function capNhat() {
+    if(updatingDashboard)return;updatingDashboard=true;
+    try {
+      const response=await fetch('/api/get_data',{cache:'no-store'});if(!response.ok)throw Error('HTTP '+response.status);
+      const d = await response.json();
+      if (serverDown) { serverDown = false; napLaiVideo(); }   // server vừa chạy lại -> nối lại video
+
+      // Có khung hình mới thì video_id tăng; đứng yên > 3 giây là camera/luồng bị đứng
+      if (d.video_id !== lastVideoId) { lastVideoId = d.video_id; lastVideoChange = Date.now(); }
+      const dung = Date.now() - lastVideoChange;
+      if (dung < 3000) {
+        const f = d.fps || {};
+        if (f.cam && f.cam < 1) datBadge('● LIVE chậm ' + f.cam + ' fps' + (f.sang && f.sang < 70 ? ' · thiếu sáng?' : ''), 'bg-warning text-dark');
+        else datBadge('● LIVE' + (f.khac ? ' · ' + Math.round(f.khac) + ' fps' : ''), 'bg-success');
+      } else {
+        datBadge('MẤT TÍN HIỆU CAMERA', 'bg-warning text-dark');
+        if (dung > 6000) napLaiVideo();
+      }
+
+      const aiBtn = document.getElementById('aiBtn');
+      aiBtn.dataset.dung = d.ai_dung ? '1' : '';
+      aiBtn.textContent = d.ai_dung ? 'AI ĐANG TẠM DỪNG - bấm để bật' : 'Tạm dừng AI';
+      aiBtn.className = 'btn btn-sm ' + (d.ai_dung ? 'btn-warning' : 'btn-outline-secondary');
+
+      const qBtn = document.getElementById('quakeBtn');
+      qBtn.dataset.on = d.is_earthquake ? '1' : '';
+      qBtn.textContent = d.is_earthquake ? 'ĐANG BÁO ĐỘNG - bấm để tắt' : 'Bật báo động thử';
+      qBtn.className = 'btn btn-sm ' + (d.is_earthquake ? 'btn-danger' : 'btn-outline-danger');
+
+      document.getElementById('rung').textContent = d.rung_chan === null ? '--' : d.rung_chan.toFixed(2);
+      const tt = document.getElementById('trangthai');
+      const canhBao = d.trang_thai === 'CANH BAO';
+      const states={CANH_BAO:'BÁO ĐỘNG',WARNING:'CẢNH BÁO NHẸ',SAFE:'SẴN SÀNG',OFFLINE:'MẤT KẾT NỐI MẠCH',ERROR:'LỖI MPU',CALIBRATING:'ĐỂ YÊN MPU'};
+      tt.textContent = canhBao ? states.CANH_BAO : states[d.trang_thai] || 'CHƯA CÓ DỮ LIỆU';
+      tt.className = 'stat-value ' + (canhBao ? 'text-danger alert-state' : d.trang_thai==='SAFE' ? 'text-success' : 'text-warning');
+      const iot=d.iot || {},c=iot.controller || {};
+      document.getElementById('iotInfo').textContent=(iot.online ? 'ESP8266 đã kết nối' : 'ESP8266 mất kết nối')+
+        (iot.camera_ip ? ' · Camera '+iot.camera_ip : ' · Chưa nhận IP camera')+
+        (iot.online ? ' · Cửa: '+(c.door?'lệnh mở':'lệnh đóng')+' · Còi: '+(c.buzzer_muted?'đã tắt':c.warning?'3 tiếng ngắn / 10 giây':c.buzzer?'bật':'tắt') : '')+
+        (iot.photo_error ? ' · Chưa tải được ảnh camera' : '');
+
+      document.getElementById('cntOk').textContent  = d.da_thoat.length;
+      document.getElementById('cntBad').textContent = d.ket_lai.length;
+      renderThoat(d.da_thoat_chi_tiet || d.da_thoat.map(n => ({ten: n, thoi_gian: '', anh: null})));
+      renderSlots(d.thanh_vien || []);
+      renderList(document.getElementById('listBad'), d.ket_lai,  'stuck-name', 'Không còn ai bị kẹt');
+    } catch (e) {
+      serverDown = true;
+      datBadge('MẤT KẾT NỐI SERVER', 'bg-danger');
+      document.getElementById('trangthai').textContent = 'MẤT KẾT NỐI';
+    }finally{updatingDashboard=false;}
+  }
+
+  async function dieuKhien(action) {
+    const msg = document.getElementById('ctrlMsg');
+    msg.textContent = 'Đang gửi lệnh...';
+    try {
+      const r = await fetch('/api/control/' + action,{method:'POST'});
+      const d = await r.json();
+      msg.textContent = d.message;
+      msg.className = 'text-lg-end small mt-2 ' + (d.ok ? 'text-success' : 'text-danger');
+    } catch (e) {
+      msg.textContent = 'Lỗi gửi lệnh tới server';
+      msg.className = 'text-lg-end small mt-2 text-danger';
+    }
+  }
+
+  document.getElementById('aiBtn').addEventListener('click', async (e) => {
+    const dang = e.currentTarget.dataset.dung === '1';
+    try { await fetch('/api/ai/' + (dang ? 'chay' : 'dung'),{method:'POST'}); } catch (err) {}
+    capNhat();
+  });
+
+  document.getElementById('quakeBtn').addEventListener('click', async (e) => {
+    const dang = e.currentTarget.dataset.on === '1';
+    await dieuKhien(dang ? 'reset' : 'test');
+    capNhat();
+  });
+
+
+  async function loadIotConfig(){
+    try {const r=await fetch('/api/iot/config');if(!r.ok)throw Error();const d=await r.json();
+      document.getElementById('controllerIp').value=d.controller_ip;
+      document.getElementById('cameraIp').value=d.camera_ip || '';
+    }catch(e){document.getElementById('configMsg').textContent='Không đọc được cấu hình.';}
+  }
+  async function saveIotConfig(){
+    const button=document.getElementById('saveIot');button.disabled=true;
+    try {const r=await fetch('/api/iot/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+      controller_ip:document.getElementById('controllerIp').value,camera_ip:document.getElementById('cameraIp').value})});
+      const d=await r.json();document.getElementById('configMsg').textContent=d.ok?'Đã lưu IP; đang kết nối hai mạch.':d.message;
+    }catch(e){document.getElementById('configMsg').textContent='Không gửi được cấu hình.';}
+    finally{button.disabled=false;}
+  }
+  let lastPhotosKey='',loadingPhotos=false,updatingDashboard=false;
+  async function loadPhotos(){
+    if(loadingPhotos)return;loadingPhotos=true;
+    try {const r=await fetch('/api/camera/photos',{cache:'no-store'});if(!r.ok)throw Error();const d=await r.json();
+      const key=JSON.stringify(d.photos);if(key===lastPhotosKey)return;lastPhotosKey=key;
+      const grid=document.getElementById('eventPhotos');grid.replaceChildren();
+      if(!d.photos.length){grid.textContent='Chưa có ảnh được tải về máy chủ.';return;}
+      d.photos.forEach(p=>{const box=document.createElement('div');box.className='slot co';
+        const a=document.createElement('a');a.href=p.url;a.target='_blank';a.rel='noopener';
+        const img=document.createElement('img');img.src=p.url;img.alt='Ảnh camera';img.loading='lazy';img.style.width='100%';a.appendChild(img);
+        const label=document.createElement('div');label.className='sname';label.textContent=({first:'Ảnh đầu cảnh báo',latest:'Ảnh tự động #'+p.capture_number,manual:'Ảnh thủ công'})[p.kind] || 'Ảnh camera';
+        const date=document.createElement('div');date.className='stime';date.textContent=new Date(p.saved_at).toLocaleString('vi-VN');
+        box.append(a,label,date);grid.appendChild(box);});
+    }catch(e){document.getElementById('photoMsg').textContent='Không đọc được danh sách ảnh.';}
+    finally{loadingPhotos=false;}
+  }
+  async function captureNow(){
+    const button=document.getElementById('captureNow');button.disabled=true;
+    document.getElementById('photoMsg').textContent='Đang yêu cầu ESP32 chụp…';
+    try {const r=await fetch('/api/camera/capture',{method:'POST'}),d=await r.json();
+      document.getElementById('photoMsg').textContent=d.ok?'Đã chụp và lưu ảnh trên laptop.':d.message;
+      if(d.ok)await loadPhotos();
+    }catch(e){document.getElementById('photoMsg').textContent='Không gửi được yêu cầu chụp.';}
+    finally{button.disabled=false;}
+  }
+  loadIotConfig();loadPhotos();setInterval(loadPhotos,5000);
+
+  capNhat();
+  setInterval(capNhat, 1000);
+</script>
+</body>
+</html>

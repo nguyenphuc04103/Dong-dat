@@ -1,0 +1,28 @@
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://10.19.103.251:5000
+Press CTRL+C to quit
+C:\Users\Admin\Downloads\DuAn_IoT_AI_v7_IP104_103\DuAn_IoT_AI_v7_TichHop\venv\Lib\site-packages\face_recognition_models\__init__.py:7: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_filename
+127.0.0.1 - - [07/Oct/2026 07:54:50] "GET /api/camera/photos HTTP/1.1" 200 -
+127.0.0.1 - - [07/Oct/2026 07:54:50] "GET /api/get_data HTTP/1.1" 200 -
+127.0.0.1 - - [07/Oct/2026 07:54:51] "GET /api/get_data HTTP/1.1" 200 -
+127.0.0.1 - - [07/Oct/2026 07:54:52] "GET /api/get_data HTTP/1.1" 200 -
+127.0.0.1 - - [07/Oct/2026 07:54:53] "GET /api/get_data HTTP/1.1" 200 -
+127.0.0.1 - - [07/Oct/2026 07:54:54] "GET /api/get_data HTTP/1.1" 200 -
+127.0.0.1 - - [07/Oct/2026 07:54:55] "GET /api/camera/photos HTTP/1.1" 200 -
+127.0.0.1 - - [07/Oct/2026 07:54:55] "GET /api/get_data HTTP/1.1" 200 -
+127.0.0.1 - - [07/Oct/2026 07:54:56] "GET /api/get_data HTTP/1.1" 200 -
+127.0.0.1 - - [07/Oct/2026 07:54:57] "GET /api/get_data HTTP/1.1" 200 -
+127.0.0.1 - - [07/Oct/2026 07:54:58] "GET /api/get_data HTTP/1.1" 200 -
+127.0.0.1 - - [07/Oct/2026 07:54:59] "GET /api/get_data HTTP/1.1" 200 -
+127.0.0.1 - - [07/Oct/2026 07:55:00] "GET /api/camera/photos HTTP/1.1" 200 -
+127.0.0.1 - - [07/Oct/2026 07:55:00] "GET /api/get_data HTTP/1.1" 200 -
+127.0.0.1 - - [07/Oct/2026 07:55:01] "GET /api/get_data HTTP/1.1" 200 -
+127.0.0.1 - - [07/Oct/2026 07:55:02] "GET /api/get_data HTTP/1.1" 200 -
+127.0.0.1 - - [07/Oct/2026 07:55:03] "GET /api/get_data HTTP/1.1" 200 -
+127.0.0.1 - - [07/Oct/2026 07:55:04] "GET /api/get_data HTTP/1.1" 200 -
+127.0.0.1 - - [07/Oct/2026 07:55:05] "GET /api/camera/photos HTTP/1.1" 200 -
+127.0.0.1 - - [07/Oct/2026 07:55:05] "GET /api/get_data HTTP/1.1" 200 -
+127.0.0.1 - - [07/Oct/2026 07:55:06] "GET /api/get_data HTTP/1.1" 200 -

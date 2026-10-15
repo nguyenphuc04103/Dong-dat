@@ -1,0 +1,11 @@
+@echo off
+cd /d "%~dp0"
+if not exist venv (echo Chua cai dat. Hay chay cai_dat.bat truoc. & pause & exit /b 1)
+call venv\Scripts\activate.bat
+set CAM_BACKEND=msmf
+set CAM_DEBUG=0
+rem Neu MySQL cua ban co mat khau cho root: bo chu rem o dong duoi va dien mat khau
+rem set DB_PASSWORD=matkhau_cua_ban
+echo Nho bat MySQL trong XAMPP truoc. Mo trinh duyet: http://127.0.0.1:5000
+python app.py
+pause

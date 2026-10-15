@@ -1,0 +1,6 @@
+Bo anh khuon mat vao thu muc nay (xoa file nay cung duoc).
+- Moi nguoi 1 anh, mat ro, nhin thang, du sang, chi co 1 khuon mat.
+- Ten file = ten hien thi, khong dau, dung _ thay khoang trang.
+  Vi du: Quang_Phuc.jpg -> hien "Quang Phuc"
+- Dinh dang: .jpg .jpeg .png
+- Them/xoa anh xong phai chay lai server.

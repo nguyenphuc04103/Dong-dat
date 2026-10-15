@@ -1,0 +1,13 @@
+# Cai tu dong bang cai_dat.bat (khong can chay tay file nay).
+# Luu y: face_recognition phai cai voi --no-deps, dlib dung ban dung san "dlib-bin".
+flask
+opencv-python
+mysql-connector-python
+requests
+numpy
+dlib-bin
+face_recognition_models
+Click
+Pillow
+setuptools<81
+# face_recognition   <- cai rieng: pip install face_recognition --no-deps
